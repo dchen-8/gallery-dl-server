@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="Description" content="Web frontend for gallery-dl">
+
+  <title>gallery-dl</title>
+</head>
+
+<body>
+  <div class="container d-flex flex-column text-light text-center">
+    <div class="flex-grow-1"></div>
+    <div class="jumbotron bg-transparent flex-grow-1">
+      <h1 class="display-4">youtube-dl</h1>
+      <p class="lead">Enter a url to download the photos to the server. Url can be to <a class="text-info"
+          href="https://github.com/mikf/gallery-dl/blob/master/docs/supportedsites.rst">any
+          other supported site</a>.</p>
+      <hr class="my-4">
+      <div>
+        <form action="/gallery-dl" method="POST">
+          <div class="input-group">
+            <input name="url" type="url" class="form-control" placeholder="URL" aria-label="URL" aria-describedby="button-submit" autofocus>
+            <div class="input-group-append">
+              <button class="btn btn-primary" type="submit" id="button-submit">Submit</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+</br>
+    <div>
+        <a href="/gallery-dl/create_zip">Click here to create zip.</a>
+    </div>
+    <footer>
+      <div>
+        <p class="text-muted">Web frontend for <a class="text-light" href="https://github.com/mikf/gallery-dl/">gallery-dl</a></p>
+      </div>
+    </footer>
+  </div>
+
+</body>
+
+</html>
