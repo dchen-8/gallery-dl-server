@@ -13,6 +13,9 @@ DEFAULT_PORT = 8080
 GALLERY_PATH = './gallery-dl/'
 ZIP_SUFFIX = 'cbz'
 
+class NoPathExists(Exception):
+    pass
+
 @app.route('/')
 def gallery_main():
     return static_file('index.html', root='./')
@@ -39,6 +42,9 @@ def call_gallery_dl(url):
 
 @app.route('/gallery-dl/create_zip', method='GET')
 def find_directories_and_zip():
+    if not os.path.exists(GALLERY_PATH):
+        raise NoPathExists("GALLERY PATH does not exist; Download something and try again")
+
     top_dir = os.listdir(GALLERY_PATH)
     for each_dir in top_dir:
         each_dir_path = os.path.join(GALLERY_PATH, each_dir)
@@ -56,10 +62,15 @@ def find_directories_and_zip():
 
             # Check if zip file has already been created and skip if already created
             # TODO: Allow ability to ignore check and re-zip folders.
-            if zip_file_name in os.listdir(zip_path):
-                print('Files have already been zipped.')
-                print('Skipping')
-                continue
+            if os.path.exists(zip_file_path):
+                existing_zip = ZipFile(zip_file_path)
+                items_in_zip = existing_zip.namelist()
+
+                # If the photos in the directory is less than or equal to items in zip; skip
+                if len(photos_in_directory) <= len(items_in_zip):
+                    print('Files have already been zipped.')
+                    print('Skipping')
+                    continue
 
             with ZipFile(zip_file_path, 'w') as myzip:
                 for each_photo in photos_in_directory:
