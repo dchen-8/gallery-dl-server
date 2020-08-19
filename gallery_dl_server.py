@@ -99,6 +99,7 @@ def zip_directories(path_to_zip):
                 print('Skipping')
                 continue
 
+        print('Creating file: ' + zip_file_path)
         with ZipFile(zip_file_path, 'w') as myzip:
             for each_photo in photos_in_directory:
                 each_photo_path = os.path.join(root_path, each_photo)
