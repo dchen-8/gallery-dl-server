@@ -81,8 +81,9 @@ def zip_directories(path_to_zip):
         if not photos_in_directory:
             print('No photos in directory: ' + root_path)
             continue
-        
-        zip_path, zip_file = root_path.rsplit('/', 1)
+
+        # Remove trailing / if it exists
+        zip_path, zip_file = root_path.rstrip('/').rsplit('/', 1)
         zip_file_name = zip_file + '.' + ZIP_SUFFIX
         zip_file_path = os.path.join(zip_path, zip_file_name)
 
