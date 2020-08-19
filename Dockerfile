@@ -12,4 +12,4 @@ EXPOSE 8080
 
 VOLUME ["/usr/src/app/gallery-dl"]
 
-CMD [ "python3", "./gallery-dl-server.py" ]
+CMD [ "python3", "./gallery_dl_server.py" ]
