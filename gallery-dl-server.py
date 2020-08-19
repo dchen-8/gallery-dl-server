@@ -1,5 +1,6 @@
 # /Library/Frameworks/Python.framework/Versions/3.7/bin/python3
 
+import argparse
 import os
 import gallery_dl
 
@@ -7,6 +8,15 @@ from bottle import route, run, Bottle, request, static_file
 from queue import Queue
 from threading import Thread
 from zipfile import ZipFile
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--zip_downloads", 
+                    nargs='?',
+                    const=1,
+                    default='True',
+                    choices=['False', 'True'], 
+                    help="Zip files into CBZ after download")
+args = parser.parse_args()
 
 app = Bottle()
 dq = Queue()
@@ -40,7 +50,12 @@ def gallery_post():
 def call_gallery_dl(url):
     try:
         download_job = gallery_dl.job.DownloadJob
-        download_job(url).run()
+        downloader = download_job(url)
+        downloader.run()
+
+        if args.zip_downloads == 'True':
+            download_path = downloader.pathfmt.directory
+            zip_directories(download_path)
         print('Finished downloading!')
     except gallery_dl.exception.NoExtractorError as gd:
         print(gd)
@@ -53,37 +68,41 @@ def find_directories_and_zip():
     top_dir = os.listdir(GALLERY_PATH)
     for each_dir in top_dir:
         each_dir_path = os.path.join(GALLERY_PATH, each_dir)
-        for root_path, dirct, files in os.walk(each_dir_path):
+        zip_directories(each_dir_path)
 
-            # Check if there are photos in the files, if not skip directory
-            photos_in_directory = [x for x in files if x.rsplit('.', 1)[1] in ('jpg', 'png')]
-            if not photos_in_directory:
-                print('No photos in directory: ' + root_path)
-                continue
-            
-            zip_path, zip_file = root_path.rsplit('/', 1)
-            zip_file_name = zip_file + '.' + ZIP_SUFFIX
-            zip_file_path = os.path.join(zip_path, zip_file_name)
-
-            # Check if zip file has already been created and skip if already created
-            # TODO: Allow ability to ignore check and re-zip folders.
-            if os.path.exists(zip_file_path):
-                existing_zip = ZipFile(zip_file_path)
-                items_in_zip = existing_zip.namelist()
-
-                # If the photos in the directory is less than or equal to items in zip; skip
-                if len(photos_in_directory) <= len(items_in_zip):
-                    print('Files have already been zipped.')
-                    print('Skipping')
-                    continue
-
-            with ZipFile(zip_file_path, 'w') as myzip:
-                for each_photo in photos_in_directory:
-                    each_photo_path = os.path.join(root_path, each_photo)
-                    myzip.write(each_photo_path)
-            print('Finished creating zip for: ' + root_path)
     return {'successful_created_zips': True}
 
+
+def zip_directories(path_to_zip):
+    for root_path, dirct, files in os.walk(path_to_zip):
+
+        # Check if there are photos in the files, if not skip directory
+        photos_in_directory = [x for x in files if x.rsplit('.', 1)[1] in ('jpg', 'png')]
+        if not photos_in_directory:
+            print('No photos in directory: ' + root_path)
+            continue
+        
+        zip_path, zip_file = root_path.rsplit('/', 1)
+        zip_file_name = zip_file + '.' + ZIP_SUFFIX
+        zip_file_path = os.path.join(zip_path, zip_file_name)
+
+        # Check if zip file has already been created and skip if already created
+        # TODO: Allow ability to ignore check and re-zip folders.
+        if os.path.exists(zip_file_path):
+            existing_zip = ZipFile(zip_file_path)
+            items_in_zip = existing_zip.namelist()
+
+            # If the photos in the directory is less than or equal to items in zip; skip
+            if len(photos_in_directory) <= len(items_in_zip):
+                print('Files have already been zipped.')
+                print('Skipping')
+                continue
+
+        with ZipFile(zip_file_path, 'w') as myzip:
+            for each_photo in photos_in_directory:
+                each_photo_path = os.path.join(root_path, each_photo)
+                myzip.write(each_photo_path)
+        print('Finished creating zip for: ' + root_path)
 
 def dl_worker():
     while True:
