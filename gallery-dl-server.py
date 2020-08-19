@@ -1,11 +1,15 @@
 # /Library/Frameworks/Python.framework/Versions/3.7/bin/python3
 
 import os
-from bottle import route, run, Bottle, request, static_file
 import gallery_dl
+
+from bottle import route, run, Bottle, request, static_file
+from queue import Queue
+from threading import Thread
 from zipfile import ZipFile
 
 app = Bottle()
+dq = Queue()
 
 DEFAULT_HOST = '0.0.0.0'
 DEFAULT_PORT = 8080
@@ -28,17 +32,18 @@ def gallery_post():
     if not url:
         return {'Missing URL'}
 
-    print('Downloading: ' + url)
+    dq.put(url)
 
-    call_gallery_dl(url)
-
-    return {"successfully_downloaded": True}
+    return {"successfully_added_to_queue": True}
 
 
 def call_gallery_dl(url):
-    download_job = gallery_dl.job.DownloadJob
-    download_job(url).run()
-    print('Finished downloading!')
+    try:
+        download_job = gallery_dl.job.DownloadJob
+        download_job(url).run()
+        print('Finished downloading!')
+    except gallery_dl.exception.NoExtractorError as gd:
+        print(gd)
 
 @app.route('/gallery-dl/create_zip', method='GET')
 def find_directories_and_zip():
@@ -80,4 +85,18 @@ def find_directories_and_zip():
     return {'successful_created_zips': True}
 
 
-app.run(host=DEFAULT_HOST, port=DEFAULT_PORT, debug=True)
+def dl_worker():
+    while True:
+        url = dq.get()
+        print('Downloading: ' + url)
+        call_gallery_dl(url)
+        print('Task Done!')
+        dq.task_done()
+
+
+if __name__ == '__main__':
+    dl_thread = Thread(target=dl_worker)
+    dl_thread.start()
+
+    app.run(host=DEFAULT_HOST, port=DEFAULT_PORT, debug=True)
+    dl_thread.join()
