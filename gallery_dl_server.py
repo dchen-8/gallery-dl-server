@@ -8,6 +8,7 @@ from bottle import route, run, Bottle, request, static_file
 from queue import Queue
 from threading import Thread
 from zipfile import ZipFile
+from concurrent.futures import ThreadPoolExecutor
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--zip_downloads", 
@@ -19,7 +20,7 @@ parser.add_argument("--zip_downloads",
 args = parser.parse_args()
 
 app = Bottle()
-dq = Queue()
+DL_THREAD = ThreadPoolExecutor(max_workers=2)
 
 DEFAULT_HOST = '0.0.0.0'
 DEFAULT_PORT = 8080
@@ -42,7 +43,7 @@ def gallery_post():
     if not url:
         return {'Missing URL'}
 
-    dq.put(url)
+    DL_THREAD.submit(call_gallery_dl, url)
 
     return {"successfully_added_to_queue": True}
 
@@ -106,18 +107,7 @@ def zip_directories(path_to_zip):
                 myzip.write(each_photo_path)
         print('Finished creating zip for: ' + root_path)
 
-def dl_worker():
-    while True:
-        url = dq.get()
-        print('Downloading: ' + url)
-        call_gallery_dl(url)
-        print('Task Done!')
-        dq.task_done()
-
 
 if __name__ == '__main__':
-    dl_thread = Thread(target=dl_worker)
-    dl_thread.start()
 
     app.run(host=DEFAULT_HOST, port=DEFAULT_PORT, debug=True)
-    dl_thread.join()
