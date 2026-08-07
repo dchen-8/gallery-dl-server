@@ -18,7 +18,14 @@ parser.add_argument("--zip_downloads",
                     default='False', 
                     choices=['False', 'True'], 
                     help="Zip files into CBZ after download")
+parser.add_argument("--browser",
+                    default="chrome",
+                    help="Browser to impersonate (default: chrome)")
 args, _ = parser.parse_known_args()
+
+# Configure Chrome browser impersonation for gallery-dl extractors
+if args.browser:
+    gallery_dl.config.set(("extractor",), "browser", args.browser)
 
 app = Bottle()
 DL_THREAD = ThreadPoolExecutor(max_workers=2)
@@ -98,6 +105,9 @@ def call_gallery_dl(job_id, url, zip_downloads=None):
         job['status'] = 'downloading'
 
     try:
+        browser_choice = args.browser if hasattr(args, 'browser') and args.browser else "chrome"
+        gallery_dl.config.set(("extractor",), "browser", browser_choice)
+
         download_job = gallery_dl.job.DownloadJob
         downloader = download_job(url)
         downloader.run()
