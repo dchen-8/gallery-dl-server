@@ -2,45 +2,680 @@
 <html lang="en">
 
 <head>
-  <!-- Required meta tags -->
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <meta name="Description" content="Web frontend for gallery-dl">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="Description" content="YouTube-dlp style Web Frontend for gallery-dl">
+  <title>gallery-dl - Media Downloader</title>
 
-  <title>gallery-dl</title>
+  <!-- Google Fonts & FontAwesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --yt-bg: #0f0f0f;
+      --yt-card-bg: #1f1f1f;
+      --yt-card-border: #333333;
+      --yt-red: #ff0000;
+      --yt-red-hover: #cc0000;
+      --yt-red-glow: rgba(255, 0, 0, 0.35);
+      --yt-text-primary: #f1f1f1;
+      --yt-text-secondary: #aaaaaa;
+      --yt-nav-bg: #121212;
+    }
+
+    body {
+      font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+      background-color: var(--yt-bg);
+      color: var(--yt-text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Navbar */
+    .yt-nav {
+      background-color: var(--yt-nav-bg);
+      border-bottom: 1px solid var(--yt-card-border);
+      padding: 0.75rem 1.5rem;
+    }
+
+    .yt-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      text-decoration: none;
+      color: var(--yt-text-primary);
+      font-weight: 700;
+      font-size: 1.25rem;
+      letter-spacing: -0.5px;
+    }
+
+    .yt-logo-box {
+      width: 38px;
+      height: 28px;
+      background-color: var(--yt-red);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 10px var(--yt-red-glow);
+    }
+
+    .yt-badge {
+      background: rgba(255, 0, 0, 0.15);
+      color: var(--yt-red);
+      border: 1px solid rgba(255, 0, 0, 0.3);
+      font-size: 0.7rem;
+      padding: 0.2em 0.5em;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .main-container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+      width: 100%;
+      flex: 1;
+    }
+
+    /* Main Download Box (yt-dlp style) */
+    .yt-card {
+      background-color: var(--yt-card-bg);
+      border: 1px solid var(--yt-card-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      margin-bottom: 1.5rem;
+    }
+
+    .yt-input-group {
+      display: flex;
+      background-color: #121212;
+      border: 1px solid #383838;
+      border-radius: 8px;
+      overflow: hidden;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .yt-input-group:focus-within {
+      border-color: #1c62b9;
+      box-shadow: 0 0 0 2px rgba(28, 98, 185, 0.3);
+    }
+
+    .yt-input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      padding: 0.85rem 1rem;
+      font-size: 1rem;
+      flex: 1;
+      outline: none;
+    }
+
+    .yt-input::placeholder {
+      color: #717171;
+    }
+
+    .yt-btn-paste {
+      background: transparent;
+      border: none;
+      color: var(--yt-text-secondary);
+      padding: 0 0.85rem;
+      transition: color 0.2s;
+    }
+
+    .yt-btn-paste:hover {
+      color: #fff;
+    }
+
+    .yt-btn-submit {
+      background-color: var(--yt-red);
+      color: #ffffff;
+      border: none;
+      font-weight: 600;
+      padding: 0.85rem 1.75rem;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .yt-btn-submit:hover:not(:disabled) {
+      background-color: var(--yt-red-hover);
+      box-shadow: 0 0 15px var(--yt-red-glow);
+    }
+
+    .yt-btn-submit:disabled {
+      background-color: #555555;
+      cursor: not-allowed;
+    }
+
+    /* Sub-bar / Action toolbar */
+    .yt-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--yt-card-border);
+    }
+
+    .yt-btn-secondary {
+      background-color: #272727;
+      border: 1px solid #3f3f3f;
+      color: #f1f1f1;
+      border-radius: 6px;
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: background-color 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .yt-btn-secondary:hover:not(:disabled) {
+      background-color: #383838;
+      color: #ffffff;
+    }
+
+    /* Queue Header & Tabs */
+    .yt-queue-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .yt-tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--yt-text-secondary);
+      font-weight: 500;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+
+    .yt-tab-btn.active {
+      background-color: #272727;
+      color: #ffffff;
+    }
+
+    /* Download Item Card (MeTube style) */
+    .yt-download-item {
+      background-color: #181818;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+
+    .yt-download-item:hover {
+      border-color: #383838;
+      background-color: #1e1e1e;
+    }
+
+    .yt-thumb-icon {
+      width: 48px;
+      height: 48px;
+      background-color: #272727;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--yt-red);
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+
+    .yt-item-title {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--yt-text-primary);
+      word-break: break-all;
+    }
+
+    .yt-item-domain {
+      display: inline-block;
+      background-color: #272727;
+      color: #aaaaaa;
+      font-size: 0.75rem;
+      padding: 0.1em 0.5em;
+      border-radius: 4px;
+      margin-top: 0.25rem;
+    }
+
+    .yt-status-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.3em 0.7em;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      text-transform: uppercase;
+    }
+
+    .yt-status-queued {
+      background-color: rgba(149, 165, 166, 0.2);
+      color: #bdc3c7;
+      border: 1px solid rgba(149, 165, 166, 0.4);
+    }
+
+    .yt-status-downloading {
+      background-color: rgba(52, 152, 219, 0.2);
+      color: #3498db;
+      border: 1px solid rgba(52, 152, 219, 0.4);
+    }
+
+    .yt-status-finished {
+      background-color: rgba(46, 204, 113, 0.2);
+      color: #2ecc71;
+      border: 1px solid rgba(46, 204, 113, 0.4);
+    }
+
+    .yt-status-zipped {
+      background-color: rgba(241, 196, 15, 0.2);
+      color: #f1c40f;
+      border: 1px solid rgba(241, 196, 15, 0.4);
+    }
+
+    .yt-status-failed {
+      background-color: rgba(231, 76, 60, 0.2);
+      color: #e74c3c;
+      border: 1px solid rgba(231, 76, 60, 0.4);
+    }
+
+    .toast-container {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 1080;
+    }
+
+    .yt-toast {
+      background-color: #212121;
+      border: 1px solid #383838;
+      color: #ffffff;
+      border-radius: 8px;
+      padding: 0.85rem 1.2rem;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      animation: slideUp 0.25s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    footer {
+      background-color: var(--yt-nav-bg);
+      border-top: 1px solid var(--yt-card-border);
+      padding: 1.25rem 0;
+      color: var(--yt-text-secondary);
+      font-size: 0.85rem;
+    }
+  </style>
 </head>
 
 <body>
-  <div class="container d-flex flex-column text-light text-center">
-    <div class="flex-grow-1"></div>
-    <div class="jumbotron bg-transparent flex-grow-1">
-      <h1 class="display-4">gallery-dl</h1>
-      <p class="lead">Enter a url to download the photos to the server. Url can be to <a class="text-info"
-          href="https://github.com/mikf/gallery-dl/blob/master/docs/supportedsites.rst">any
-          other supported site</a>.</p>
-      <hr class="my-4">
-      <div>
-        <form action="/gallery-dl" method="POST">
-          <div class="input-group">
-            <input name="url" type="url" class="form-control" placeholder="URL" aria-label="URL" aria-describedby="button-submit" autofocus>
-            <div class="input-group-append">
-              <button class="btn btn-primary" type="submit" id="button-submit">Submit</button>
-            </div>
-          </div>
-        </form>
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Navbar -->
+  <nav class="yt-nav d-flex align-items-center justify-content-between">
+    <a href="/" class="yt-brand">
+      <div class="yt-logo-box">
+        <i class="fa-solid fa-play text-white fs-6 ms-1"></i>
+      </div>
+      <span>gallery-dl</span>
+      <span class="yt-badge">Web UI</span>
+    </a>
+    
+    <div class="d-flex align-items-center gap-3">
+      <span class="text-secondary small d-none d-md-inline-block">
+        <i class="fa-solid fa-server text-success me-1"></i> Backend Online
+      </span>
+      <a href="https://github.com/mikf/gallery-dl/blob/master/docs/supportedsites.md" 
+         target="_blank" rel="noopener" class="yt-btn-secondary text-decoration-none">
+        <i class="fa-solid fa-list-check"></i> Supported Sites
+      </a>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <div class="main-container">
+
+    <!-- Add Download Card -->
+    <div class="yt-card">
+      <h5 class="fw-bold mb-1"><i class="fa-solid fa-circle-down text-danger me-2"></i>Add Download</h5>
+      <p class="text-secondary small mb-3">Paste image gallery, manga, or media URL to queue downloads to the server.</p>
+
+      <form id="gallery-form">
+        <div class="yt-input-group">
+          <input name="url" type="url" id="url-input" class="yt-input" 
+                 placeholder="https://example.com/gallery/123" required autofocus autocomplete="off">
+          <button type="button" class="yt-btn-paste" id="btn-paste" title="Paste from clipboard">
+            <i class="fa-regular fa-clipboard fs-5"></i>
+          </button>
+          <button class="yt-btn-submit" type="submit" id="button-submit">
+            <span id="btn-text">Download</span>
+            <i class="fa-solid fa-arrow-down-to-bracket" id="btn-icon"></i>
+            <span class="spinner-border spinner-border-sm d-none" id="btn-spinner" role="status"></span>
+          </button>
+        <div class="form-check form-switch mt-2.5 ms-1">
+          <input class="form-check-input" type="checkbox" role="switch" id="zip-toggle">
+          <label class="form-check-label text-secondary small" for="zip-toggle" style="user-select:none;">
+            Automatically create ZIP archive after download
+          </label>
+        </div>
+      </form>
+
+      <!-- Toolbar -->
+      <div class="yt-toolbar">
+        <div class="d-flex align-items-center gap-2">
+          <button class="yt-btn-secondary" id="btn-create-zip">
+            <i class="fa-solid fa-file-zipper text-warning"></i>
+            <span id="zip-btn-text">Create ZIP Archive</span>
+            <span class="spinner-border spinner-border-sm d-none" id="zip-spinner" role="status"></span>
+          </button>
+        </div>
+
+        <div class="text-secondary small" id="stats-counter">
+          Queue Jobs: <span class="text-white fw-bold" id="queue-count">0</span>
+        </div>
       </div>
     </div>
-</br>
-    <div>
-        <a href="/gallery-dl/create_zip">Click here to create zip.</a>
-    </div>
-    <footer>
-      <div>
-        <p class="text-muted">Web frontend for <a class="text-light" href="https://github.com/mikf/gallery-dl/">gallery-dl</a></p>
+
+    <!-- Submitted URLs Log Card -->
+    <div class="yt-card">
+      <div class="yt-queue-header">
+        <h6 class="fw-bold mb-0 d-flex align-items-center gap-2">
+          <i class="fa-solid fa-clock-rotate-left text-danger"></i> Submitted URLs Log
+        </h6>
+
+        <div class="d-flex align-items-center gap-2">
+          <button class="yt-btn-secondary py-1 px-2" id="clear-history-btn" style="font-size: 0.8rem;">
+            <i class="fa-solid fa-trash-can me-1"></i> Clear Log
+          </button>
+        </div>
       </div>
-    </footer>
+
+      <!-- List Container -->
+      <div id="submission-list">
+        <div class="text-center text-secondary py-5" id="empty-history-msg">
+          <i class="fa-solid fa-list-check fs-1 mb-2 d-block opacity-25"></i>
+          No URLs submitted yet. Enter a URL above to add it to the log.
+        </div>
+      </div>
+    </div>
+
   </div>
 
+  <!-- Footer -->
+  <footer class="text-center">
+    <div class="container">
+      <p class="mb-0">yt-dlp style Web Frontend for <a class="text-white text-decoration-none fw-medium" href="https://github.com/mikf/gallery-dl/" target="_blank" rel="noopener">gallery-dl</a></p>
+    </div>
+  </footer>
+
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Interactive AJAX App Logic -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const galleryForm = document.getElementById('gallery-form');
+      const urlInput = document.getElementById('url-input');
+      const pasteBtn = document.getElementById('btn-paste');
+      const submitBtn = document.getElementById('button-submit');
+      const btnText = document.getElementById('btn-text');
+      const btnIcon = document.getElementById('btn-icon');
+      const btnSpinner = document.getElementById('btn-spinner');
+
+      const createZipBtn = document.getElementById('btn-create-zip');
+      const zipBtnText = document.getElementById('zip-btn-text');
+      const zipSpinner = document.getElementById('zip-spinner');
+
+      const submissionList = document.getElementById('submission-list');
+      const emptyHistoryMsg = document.getElementById('empty-history-msg');
+      const clearHistoryBtn = document.getElementById('clear-history-btn');
+      const queueCount = document.getElementById('queue-count');
+      const toastContainer = document.getElementById('toast-container');
+
+      const zipToggle = document.getElementById('zip-toggle');
+      let history = JSON.parse(localStorage.getItem('gallery_dl_history') || '[]');
+      renderHistory();
+
+      // Clipboard Paste Handler
+      pasteBtn.addEventListener('click', async () => {
+        try {
+          if (navigator.clipboard && navigator.clipboard.readText) {
+            const text = await navigator.clipboard.readText();
+            if (text) {
+              urlInput.value = text;
+              urlInput.focus();
+            }
+          }
+        } catch (err) {
+          console.log('Clipboard access denied or unsupported');
+        }
+      });
+
+      // Submit URL Handler
+      galleryForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const url = urlInput.value.trim();
+        if (!url) return;
+
+        setSubmittingState(true);
+
+        try {
+          const response = await fetch('/gallery-dl', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({ 
+              url,
+              zip: zipToggle.checked ? 'True' : 'False'
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`Server status ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          if (data && data.successfully_added_to_queue) {
+            showToast('Added to download queue!', 'success');
+            addToHistory(url);
+            urlInput.value = '';
+          } else {
+            showToast('Failed: ' + JSON.stringify(data), 'danger');
+          }
+        } catch (err) {
+          console.error(err);
+          showToast('Error: ' + err.message, 'danger');
+        } finally {
+          setSubmittingState(false);
+          urlInput.focus();
+        }
+      });
+
+      // Create ZIP Handler
+      createZipBtn.addEventListener('click', async () => {
+        setZipState(true);
+        try {
+          const response = await fetch('/gallery-dl/create_zip', { method: 'GET' });
+          if (!response.ok) {
+            throw new Error(`Server status ${response.status}`);
+          }
+          const data = await response.json();
+          if (data && data.successful_created_zips) {
+            showToast('ZIP archive created successfully!', 'success');
+          } else if (data && data.error) {
+            showToast(data.error, 'warning');
+          } else {
+            showToast('Result: ' + JSON.stringify(data), 'info');
+          }
+        } catch (err) {
+          console.error(err);
+          showToast('Error creating ZIP: ' + err.message, 'danger');
+        } finally {
+          setZipState(false);
+        }
+      });
+
+      // Clear History
+      clearHistoryBtn.addEventListener('click', () => {
+        history = [];
+        localStorage.removeItem('gallery_dl_history');
+        renderHistory();
+      });
+
+      function setSubmittingState(isSubmitting) {
+        submitBtn.disabled = isSubmitting;
+        if (isSubmitting) {
+          btnText.textContent = 'Queuing...';
+          btnIcon.classList.add('d-none');
+          btnSpinner.classList.remove('d-none');
+        } else {
+          btnText.textContent = 'Download';
+          btnIcon.classList.remove('d-none');
+          btnSpinner.classList.add('d-none');
+        }
+      }
+
+      function setZipState(isZipping) {
+        createZipBtn.disabled = isZipping;
+        if (isZipping) {
+          zipBtnText.textContent = 'Zipping...';
+          zipSpinner.classList.remove('d-none');
+        } else {
+          zipBtnText.textContent = 'Create ZIP Archive';
+          zipSpinner.classList.add('d-none');
+        }
+      }
+
+      function addToHistory(url) {
+        const item = {
+          id: Date.now().toString(),
+          url: url,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        history.unshift(item);
+        if (history.length > 50) history.pop();
+        localStorage.setItem('gallery_dl_history', JSON.stringify(history));
+        renderHistory();
+      }
+
+      function renderHistory() {
+        queueCount.textContent = history.length;
+        if (history.length === 0) {
+          emptyHistoryMsg.classList.remove('d-none');
+          submissionList.innerHTML = '';
+          submissionList.appendChild(emptyHistoryMsg);
+          return;
+        }
+
+        emptyHistoryMsg.classList.add('d-none');
+        submissionList.innerHTML = '';
+
+        history.forEach(item => {
+          const domain = getDomain(item.url);
+          const div = document.createElement('div');
+          div.className = 'yt-download-item';
+
+          div.innerHTML = `
+            <div class="d-flex align-items-center gap-3 overflow-hidden me-2">
+              <div class="yt-thumb-icon">
+                <i class="fa-solid fa-link"></i>
+              </div>
+              <div class="overflow-hidden">
+                <div class="yt-item-title text-truncate" title="${escapeHtml(item.url)}">${escapeHtml(item.url)}</div>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                  <span class="yt-item-domain"><i class="fa-solid fa-globe me-1"></i>${escapeHtml(domain)}</span>
+                  <span class="text-secondary small" style="font-size:0.75rem;">Submitted at ${item.timestamp}</span>
+                </div>
+              </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+              <button class="btn btn-sm text-secondary p-1" onclick="navigator.clipboard.writeText('${escapeHtml(item.url)}')" title="Copy URL">
+                <i class="fa-regular fa-copy"></i>
+              </button>
+            </div>
+          `;
+          submissionList.appendChild(div);
+        });
+      }
+
+      function getDomain(urlStr) {
+        try {
+          const parsed = new URL(urlStr);
+          return parsed.hostname.replace('www.', '');
+        } catch {
+          return 'web';
+        }
+      }
+
+      function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = 'yt-toast';
+        
+        let iconColor = type === 'success' ? '#2ecc71' : (type === 'warning' ? '#f1c40f' : '#e74c3c');
+        let icon = type === 'success' ? 'fa-circle-check' : 'fa-triangle-exclamation';
+
+        toast.innerHTML = `
+          <i class="fa-solid ${icon} fs-5" style="color: ${iconColor};"></i>
+          <span>${escapeHtml(message)}</span>
+        `;
+
+        toastContainer.appendChild(toast);
+
+        setTimeout(() => {
+          toast.style.opacity = '0';
+          toast.style.transition = 'opacity 0.3s ease';
+          setTimeout(() => toast.remove(), 300);
+        }, 3500);
+      }
+
+      function escapeHtml(str) {
+        return str.replace(/[&<>"']/g, function(m) {
+          return {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+          }[m];
+        });
+      }
+    });
+  </script>
 </body>
 
 </html>

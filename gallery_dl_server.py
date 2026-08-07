@@ -1,7 +1,8 @@
-# /Library/Frameworks/Python.framework/Versions/3.7/bin/python3
-
 import argparse
 import os
+import time
+import uuid
+from collections import OrderedDict
 import gallery_dl
 
 from bottle import route, run, Bottle, request, static_file
@@ -14,10 +15,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--zip_downloads", 
                     nargs='?',
                     const=1,
-                    default='True',
+                    default='False', 
                     choices=['False', 'True'], 
                     help="Zip files into CBZ after download")
-args = parser.parse_args()
+args, _ = parser.parse_known_args()
 
 app = Bottle()
 DL_THREAD = ThreadPoolExecutor(max_workers=2)
@@ -27,6 +28,18 @@ DEFAULT_PORT = 8080
 
 GALLERY_PATH = './gallery-dl/'
 ZIP_SUFFIX = 'cbz'
+QUEUE_TXT_PATH = 'queue.txt'
+
+JOBS = OrderedDict()
+
+
+def log_url_to_file(url, timestamp):
+    try:
+        with open(QUEUE_TXT_PATH, 'a', encoding='utf-8') as f:
+            f.write(f"[{timestamp}] {url}\n")
+    except Exception as e:
+        print(f"Error writing to {QUEUE_TXT_PATH}: {e}")
+
 
 class NoPathExists(Exception):
     pass
@@ -39,32 +52,81 @@ def gallery_main():
 @app.route('/gallery-dl', method='POST')
 def gallery_post():
     url = request.forms.get('url')
+    zip_opt = request.forms.get('zip') or request.forms.get('zip_downloads')
 
     if not url:
         return {'Missing URL'}
 
-    DL_THREAD.submit(call_gallery_dl, url)
+    job_id = uuid.uuid4().hex[:8]
+    timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
+    job_info = {
+        'id': job_id,
+        'url': url,
+        'status': 'queued',
+        'timestamp': timestamp,
+        'error': None,
+        'directory': None
+    }
+    JOBS[job_id] = job_info
 
-    return {"successfully_added_to_queue": True}
+    # Append to flat text file
+    log_url_to_file(url, timestamp)
+
+    DL_THREAD.submit(call_gallery_dl, job_id, url, zip_downloads=zip_opt)
+
+    return {"successfully_added_to_queue": True, "job_id": job_id, "job": job_info}
 
 
-def call_gallery_dl(url):
+@app.route('/gallery-dl/queue', method='GET')
+@app.route('/gallery-dl/status', method='GET')
+def get_queue_status():
+    return {"jobs": list(JOBS.values())}
+
+
+@app.route('/gallery-dl/clear_queue', method='POST')
+@app.route('/gallery-dl/clear_queue', method='GET')
+def clear_queue():
+    to_delete = [jid for jid, j in JOBS.items() if j['status'] in ('finished', 'zipped', 'failed')]
+    for jid in to_delete:
+        del JOBS[jid]
+    return {"success": True, "remaining": len(JOBS)}
+
+
+def call_gallery_dl(job_id, url, zip_downloads=None):
+    job = JOBS.get(job_id)
+    if job:
+        job['status'] = 'downloading'
+
     try:
         download_job = gallery_dl.job.DownloadJob
         downloader = download_job(url)
         downloader.run()
 
-        if args.zip_downloads == 'True':
-            download_path = downloader.pathfmt.directory
+        download_path = getattr(downloader.pathfmt, 'directory', None)
+        if job:
+            job['directory'] = download_path
+
+        should_zip = (str(zip_downloads).lower() in ('true', '1')) if zip_downloads is not None else (args.zip_downloads == 'True')
+
+        final_status = 'finished'
+        if should_zip and download_path:
             zip_directories(download_path)
+            final_status = 'zipped'
+
+        if job:
+            job['status'] = final_status
+
         print('Finished downloading!')
-    except gallery_dl.exception.NoExtractorError as gd:
+    except Exception as gd:
         print(gd)
+        if job:
+            job['status'] = 'failed'
+            job['error'] = str(gd)
 
 @app.route('/gallery-dl/create_zip', method='GET')
 def find_directories_and_zip():
     if not os.path.exists(GALLERY_PATH):
-        raise NoPathExists("GALLERY PATH does not exist; Download something and try again")
+        return {'error': 'GALLERY PATH does not exist; Download something and try again', 'successful_created_zips': False}
 
     top_dir = os.listdir(GALLERY_PATH)
     for each_dir in top_dir:
