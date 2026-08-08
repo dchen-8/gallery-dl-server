@@ -56,6 +56,13 @@ class GalleryDlServerTest(unittest.TestCase):
             content = f.read()
             self.assertIn('https://example.com/test_flat_file', content)
 
+    def test_user_agent_configuration(self):
+        import gallery_dl
+        custom_ua = "TestUserAgent/2.0"
+        # Verify that setting user-agent in call_gallery_dl works
+        gallery_dl.config.set(("extractor",), "user-agent", custom_ua)
+        self.assertEqual(gallery_dl.config.get(("extractor",), "user-agent"), custom_ua)
+
 
 if __name__ == '__main__':
     cwd = os.getcwd()

@@ -11,6 +11,8 @@ from threading import Thread
 from zipfile import ZipFile
 from concurrent.futures import ThreadPoolExecutor
 
+DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--zip_downloads", 
                     nargs='?',
@@ -21,11 +23,16 @@ parser.add_argument("--zip_downloads",
 parser.add_argument("--browser",
                     default="chrome",
                     help="Browser to impersonate (default: chrome)")
+parser.add_argument("--user-agent",
+                    default=DEFAULT_USER_AGENT,
+                    help=f"Custom User-Agent header for gallery-dl downloads (default: {DEFAULT_USER_AGENT})")
 args, _ = parser.parse_known_args()
 
-# Configure Chrome browser impersonation for gallery-dl extractors
+# Configure Chrome browser impersonation and User-Agent for gallery-dl extractors
 if args.browser:
     gallery_dl.config.set(("extractor",), "browser", args.browser)
+if getattr(args, "user_agent", None):
+    gallery_dl.config.set(("extractor",), "user-agent", args.user_agent)
 
 app = Bottle()
 DL_THREAD = ThreadPoolExecutor(max_workers=2)
@@ -60,6 +67,7 @@ def gallery_main():
 def gallery_post():
     url = request.forms.get('url')
     zip_opt = request.forms.get('zip') or request.forms.get('zip_downloads')
+    user_agent_opt = request.forms.get('user_agent') or request.forms.get('user-agent') or request.headers.get('User-Agent')
 
     if not url:
         return {'Missing URL'}
@@ -79,7 +87,7 @@ def gallery_post():
     # Append to flat text file
     log_url_to_file(url, timestamp)
 
-    DL_THREAD.submit(call_gallery_dl, job_id, url, zip_downloads=zip_opt)
+    DL_THREAD.submit(call_gallery_dl, job_id, url, zip_downloads=zip_opt, user_agent=user_agent_opt)
 
     return {"successfully_added_to_queue": True, "job_id": job_id, "job": job_info}
 
@@ -99,7 +107,7 @@ def clear_queue():
     return {"success": True, "remaining": len(JOBS)}
 
 
-def call_gallery_dl(job_id, url, zip_downloads=None):
+def call_gallery_dl(job_id, url, zip_downloads=None, user_agent=None):
     job = JOBS.get(job_id)
     if job:
         job['status'] = 'downloading'
@@ -107,6 +115,10 @@ def call_gallery_dl(job_id, url, zip_downloads=None):
     try:
         browser_choice = args.browser if hasattr(args, 'browser') and args.browser else "chrome"
         gallery_dl.config.set(("extractor",), "browser", browser_choice)
+
+        ua_choice = user_agent or (args.user_agent if hasattr(args, 'user_agent') and args.user_agent else DEFAULT_USER_AGENT)
+        if ua_choice:
+            gallery_dl.config.set(("extractor",), "user-agent", ua_choice)
 
         download_job = gallery_dl.job.DownloadJob
         downloader = download_job(url)
